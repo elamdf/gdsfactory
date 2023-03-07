@@ -1,6 +1,7 @@
 import copy
 from pathlib import Path
 from typing import Dict, Optional, Union
+from jax import Array
 
 import jax.numpy as jnp
 from tqdm.contrib.itertools import product
@@ -112,21 +113,21 @@ class Model:
     PARAMETERS
     """
 
-    def get_nominal_dict(self):
+    def get_nominal_dict(self) -> Dict[str, Union[LayerStackThickness, NamedParameter]]:
         """Return input_dict of nominal parameter values."""
         return {
             name: parameter.nominal_value
             for name, parameter in self.trainable_parameters.items()
         }
 
-    def get_random_dict(self):
+    def get_random_dict(self) -> Dict[str, float]:
         """Return input_dict of randomly sampled parameter values."""
         return {
             name: parameter.sample()
             for name, parameter in self.trainable_parameters.items()
         }
 
-    def parse_input_dict(self, input_dict):
+    def parse_input_dict(self, input_dict) -> tuple[dict, dict, dict]:
         """Separates between LayerStackThickness, NamedParameter, and LithoParameter inputs.
 
         Args:
@@ -244,7 +245,9 @@ class Model:
         """
         return NotImplementedError
 
-    def get_all_inputs_outputs(self, type="arange"):
+    def get_all_inputs_outputs(
+        self, type: str = "arange"
+    ) -> tuple[Array[float], Array[float]]:
         """Get all outputs given all sets of inputs.
 
         get_output_from_inputs and remote_function are defined in the child class.
@@ -260,7 +263,7 @@ class Model:
             for values in product(*ranges_dict.values())
         ]
         # Execute the jobs
-        results = ray.get(output_ids)
+        results = ray.get(output_ids)  # FIXME assuming array of floats
 
         # Parse the outputs into input and output vectors
         input_vectors = []
@@ -292,7 +295,7 @@ class Model:
         input_vectors, output_vectors = self.get_all_inputs_outputs()
         self.inference = nd_nd_interpolation(input_vectors, output_vectors)
 
-    def set_mlp_interp(self):
+    def set_mlp_interp(self) -> None:
         """Returns multilayer perceptron interpolator.
 
         Returns:
