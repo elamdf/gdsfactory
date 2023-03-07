@@ -32,7 +32,7 @@ def get_mode_solver_coupler(
     sz: float = 2.0,
     resolution: int = 32,
     nmodes: int = 4,
-    sidewall_angles: Union[Tuple[float, ...], float] = None,
+    sidewall_angles: Optional[Union[Tuple[float, ...], float]] = None,
 ) -> mpb.ModeSolver:
     """Returns mode_solver simulation.
 
@@ -92,7 +92,7 @@ def get_mode_solver_coupler(
 
     y = -sy / 2 + ymargin
 
-    gaps = list(gaps) + [0]
+    gaps = tuple(list(gaps) + [0])
     for i, wg_width in enumerate(wg_widths):
         if sidewall_angles:
             geometry.append(
@@ -111,7 +111,9 @@ def get_mode_solver_coupler(
                     # If only 1 angle is specified, use it for all waveguides
                     sidewall_angle=np.deg2rad(sidewall_angles)
                     if len(np.unique(sidewall_angles)) == 1
-                    else np.deg2rad(sidewall_angles[i]),
+                    else np.deg2rad(
+                        sidewall_angles[i]
+                    ),  # FIXME what if sidewall is a single float? the type annotation seems to suggest that this is possible
                     material=material_core,
                 )
             )
