@@ -27,7 +27,7 @@ class Parameter:
             step: size of the step going from min_value to max_value when generating data.
         """
 
-    def sample(self, rand_val: float = None):
+    def sample(self, rand_val: float = None) -> float:
         """Return a random value within a parameter allowable values.
 
         User can provide their own random number between 0 and 1 (mapping to a value between min and max), or default to uniform sampling.
@@ -39,15 +39,15 @@ class Parameter:
         rand_val = rand_val or np.random.rand(1)[0]
         return self.min_value + (self.max_value - self.min_value) * rand_val
 
-    def count(self):
+    def count(self) -> int:
         """Given min, max, and step, returns number of grid points."""
         return np.ceil(np.abs(self.max_value - self.min_value) / self.step)
 
-    def arange(self):
+    def arange(self) -> np.ndarray[float]:
         """Given min, max, and step, return array of values between min and max (inclusive)."""
         return np.arange(self.min_value, self.max_value + self.step / 2, self.step)
 
-    def corners(self):
+    def corners(self) -> np.ndarray[float]:
         """Returns an array of min, nominal, and max values of the parameter."""
         return np.array([self.min_value, self.nominal_value, self.max_value])
 
@@ -127,7 +127,7 @@ class LithoParameter(Parameter):
 
         return None
 
-    def get_transformation(self, component, value):
+    def get_transformation(self, component, value) -> gf.Component:
         if self.type == "layer_dilation_erosion":
             return self.layer_dilation_erosion(component, value)
         elif self.type == "layer_x_offset":
