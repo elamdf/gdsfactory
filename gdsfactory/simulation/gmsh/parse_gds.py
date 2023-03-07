@@ -1,14 +1,21 @@
 """Preprocessing involving mostly the GDS polygons."""
 from __future__ import annotations
+from typing import Any, Dict, Generator, Union
 
 import shapely
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
+from gdsfactory.technology.layer_stack import LayerStack
+
+from gdsfactory.typings import ComponentOrReference
 
 
-def round_coordinates(geom, ndigits=5):
+def round_coordinates(
+    geom: Polygon,
+    ndigits: int = 5,
+) -> Polygon:
     """Round coordinates to n_digits to eliminate floating point errors."""
 
-    def _round_coords(x, y, z=None):
+    def _round_coords(x, y, z=None) -> list[float]:
         x = round(x, ndigits)
         y = round(y, ndigits)
 
@@ -20,11 +27,19 @@ def round_coordinates(geom, ndigits=5):
     return shapely.ops.transform(_round_coords, geom)
 
 
-def fuse_polygons(component, layername, layer, round_tol=5, simplify_tol=1e-5):
+def fuse_polygons(
+    component: ComponentOrReference,
+    layername: LayerStack,
+    layer: Dict[
+        str, Dict[str, Any]
+    ],  # this is what's returned from LayerLevel.to_dict()
+    round_tol: int = 5,
+    simplify_tol: float = 1e-5,
+) -> Union[Polygon, MultiPolygon]:
     """Take all polygons from a layer, and returns a single (Multi)Polygon shapely object."""
     layer_component = component.extract(layer)
     shapely_polygons = [
-        round_coordinates(shapely.geometry.Polygon(polygon), round_tol)
+        round_coordinates(Polygon(polygon), round_tol)
         for polygon in layer_component.get_polygons()
     ]
 
@@ -33,7 +48,12 @@ def fuse_polygons(component, layername, layer, round_tol=5, simplify_tol=1e-5):
     )
 
 
-def cleanup_component(component, layerstack, round_tol=2, simplify_tol=1e-2):
+def cleanup_component(
+    component: ComponentOrReference,
+    layerstack: LayerStack,
+    round_tol: int = 2,
+    simplify_tol: float = 1e-2,
+):
     """Process component polygons before meshing."""
     layerstack_dict = layerstack.to_dict()
     return {
@@ -57,7 +77,7 @@ def to_polygons(geometries):
             yield from geometry.geoms
 
 
-def to_lines(geometries):
+def to_lines(geometries) -> Generator[LineString]:
     for geometry in geometries:
         if isinstance(geometry, LineString):
             yield geometry
@@ -65,7 +85,7 @@ def to_lines(geometries):
             yield from geometry.geoms
 
 
-def tile_shapes(shapes_dict):
+def tile_shapes(shapes_dict: dict[str, LineString]) -> dict[str, LineString]:
     """Break up shapes in order so that plane is tiled with non-overlapping layers."""
     shapes_tiled_dict = {}
     for lower_index, (lower_name, lower_shapes) in reversed(

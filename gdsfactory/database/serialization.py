@@ -31,7 +31,7 @@ class GdsfactoryJSONEncoder(JSONEncoder):
 class GdsfactoryJSONDecoder(JSONDecoder):
     """TODO."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         JSONDecoder.__init__(self, object_hook=self.object_hook, **kwargs)
 
     def object_hook(self, dct):
