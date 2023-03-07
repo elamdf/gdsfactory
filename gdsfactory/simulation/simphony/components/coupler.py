@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from simphony.libraries.sipann import Standard
 
@@ -11,8 +12,8 @@ def coupler(
     sw_angle: float = 90.0,
     dx: float = 1.5,
     dy: float = 5.0,
-    **kwargs,
-):
+    **kwargs: dict[str, Any],
+) -> Standard:
     r"""Return simphony Directional coupler model.
 
     Args:
