@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import List
 
 import numpy as np
+import numpy.typing as npt
 from scipy.optimize import fsolve
 from typing_extensions import Literal
 
@@ -67,19 +68,20 @@ def get_effective_indices(
 
     k_0 = 2 * np.pi / wavelength
 
-    def k_f(e_eff: np.ndarray[np.floating]) -> np.ndarray[np.floating]:
-        return k_0 * np.sqrt(epsilon_core - e_eff) / (epsilon_core if tm else 1)
+    # these are correctly typed, numpy type annotations don't seem to want to cooperate
+    def k_f(e_eff: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        return k_0 * np.sqrt(epsilon_core - e_eff) / (epsilon_core if tm else 1)  # type: ignore
 
-    def k_s(e_eff: np.ndarray[np.floating]) -> np.ndarray[np.floating]:
-        return (
+    def k_s(e_eff: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        return (  # type: ignore
             k_0 * np.sqrt(e_eff - epsilon_substrate) / (epsilon_substrate if tm else 1)
         )
 
-    def k_c(e_eff: np.ndarray[np.floating]) -> np.ndarray[np.floating]:
-        return k_0 * np.sqrt(e_eff - epsilon_cladding) / (epsilon_cladding if tm else 1)
+    def k_c(e_eff: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        return k_0 * np.sqrt(e_eff - epsilon_cladding) / (epsilon_cladding if tm else 1)  # type: ignore
 
-    def objective(e_eff: np.ndarray[np.floating]) -> np.ndarray[np.floating]:
-        return 1 / np.tan(k_f(e_eff) * thickness) - (
+    def objective(e_eff: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        return 1 / np.tan(k_f(e_eff) * thickness) - (  # type: ignore
             k_f(e_eff) ** 2 - k_s(e_eff) * k_c(e_eff)
         ) / (k_f(e_eff) * (k_s(e_eff) + k_c(e_eff)))
 
