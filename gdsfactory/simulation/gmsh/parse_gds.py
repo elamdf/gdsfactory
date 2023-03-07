@@ -29,7 +29,7 @@ def round_coordinates(
 
 def fuse_polygons(
     component: ComponentOrReference,
-    layername: LayerStack,
+    layername: str,
     layer: Dict[
         str, Dict[str, Any]
     ],  # this is what's returned from LayerLevel.to_dict()
