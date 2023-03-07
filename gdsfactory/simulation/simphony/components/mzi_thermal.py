@@ -12,11 +12,10 @@ def delta_temperature(
 
 def test_delta_temperature() -> None:
     dt = delta_temperature(1.55, 100)
-    np.isclose(dt, 41.44385026737968)
+    assert np.isclose(dt, 41.44385026737968)
     dt = delta_temperature(1.55, 1000)
-    np.isclose(dt, 4.44385026737968)
-    # TODO maybe assert all(np.isclose) or something? This check doesn't do anything, isclose returns a bool array
+    assert np.isclose(dt, 4.44385026737968)
 
 
 if __name__ == "__main__":
-    test_delta_temperature()  # FIXME this doesn't do anything- np.isclose isn't an assert
+    test_delta_temperature()
