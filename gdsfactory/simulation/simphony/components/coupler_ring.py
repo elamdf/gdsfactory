@@ -11,7 +11,7 @@ def coupler_ring(
     length_x: float = 4.0,
     sw_angle: float = 90.0,
     **kwargs,
-):
+) -> sipann.HalfRacetrack:
     r"""Return model for for half a ring coupler.
 
     Args:
