@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from SiPANN.scee import HalfRacetrack
 
@@ -10,8 +11,8 @@ def coupler_ring(
     gap: float = 0.22,
     length_x: float = 4.0,
     sw_angle: float = 90.0,
-    **kwargs,
-):
+    **kwargs: dict[str, Any],
+) -> HalfRacetrack:
     r"""Return model for for half a ring coupler.
 
     Args:
