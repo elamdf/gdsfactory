@@ -1,5 +1,6 @@
 from typing import Any
 import numpy as np
+import numpy.typing as npt
 from psycopg2.extensions import register_adapter, AsIs
 
 
@@ -19,7 +20,7 @@ def adapt_numpy_int32(inp: np.int32) -> AsIs:
     return AsIs(inp)
 
 
-def adapt_numpy_array(inp: np.ndarray[Any]) -> AsIs:
+def adapt_numpy_array(inp: npt.NDArray[Any]) -> AsIs:
     return AsIs(tuple(inp))
 
 
