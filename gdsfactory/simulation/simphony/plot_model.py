@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional
+from matplotlib.axes import Axes
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,11 +13,11 @@ def plot_model(
     model: Model,
     pin_in: str = "o1",
     pins: Optional[List[str]] = None,
-    wavelengths=None,
+    wavelengths: Optional[np.ndarray[np.floating]] = None,
     logscale: bool = True,
-    fig=None,
+    fig: Optional[Axes] = None,
     phase: bool = False,
-) -> None:
+) -> Axes:
     """Plot simphony Sparameters for a model.
 
     Args:

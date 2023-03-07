@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Optional
+from matplotlib.axes import Axes
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,14 +15,14 @@ from sax.typing_ import Model
 def plot_model(
     model: Model,
     port1: str = "o1",
-    ports2: Tuple[str, ...] = None,
+    ports2: Optional[list[str]] = None,
     logscale: bool = True,
-    fig=None,
+    fig: Optional[Axes] = None,
     wavelength_start: float = 1.5,
     wavelength_stop: float = 1.6,
     wavelength_points: int = 2000,
     phase: bool = False,
-) -> None:
+) -> Axes:
     """Plot Model Sparameters Magnitude.
 
     Args:
@@ -45,7 +46,7 @@ def plot_model(
     wavelengths = np.linspace(wavelength_start, wavelength_stop, wavelength_points)
     sdict = model(wl=wavelengths)
 
-    ports = {ports[0] for ports in sdict.keys()}
+    ports = list({ports[0] for ports in sdict.keys()})
     ports2 = ports2 or ports
 
     if port1 not in ports:
