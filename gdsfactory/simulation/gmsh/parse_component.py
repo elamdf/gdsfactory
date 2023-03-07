@@ -1,23 +1,25 @@
 """Preprocessing involving both the GDS and the LayerStack, or the resulting simulation polygons."""
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict, Tuple
 
 import numpy as np
 from shapely.affinity import scale
-from shapely.geometry import MultiPolygon
+from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import unary_union
 
 from gdsfactory.simulation.gmsh.parse_gds import to_polygons
 from gdsfactory.technology import LayerLevel, LayerStack
 
 
-def bufferize(layerstack: LayerStack):
+def bufferize(layerstack: LayerStack) -> LayerStack:
     """Convert layers without a z_to_bias to an equivalent z_to_bias.
 
     Arguments:
         layerstack: layerstack to process
     """
+    assert layerstack.layers is not None
+
     for layer in layerstack.layers.values():
         if layer.z_to_bias is None:
             if layer.sidewall_angle is None:
@@ -41,7 +43,10 @@ def bufferize(layerstack: LayerStack):
     return layerstack
 
 
-def process_buffers(layer_polygons_dict: Dict, layerstack: LayerStack):
+# the "Unknown" here is str | (shapely geometry buffer which doesn't have a type for some reason)
+def process_buffers(
+    layer_polygons_dict: Dict[str, Polygon | MultiPolygon], layerstack: LayerStack
+) -> tuple[dict[str, Any], LayerStack]:
     """Break up layers into sub-layers according to z_to_bias.
 
     Arguments:
@@ -57,11 +62,15 @@ def process_buffers(layer_polygons_dict: Dict, layerstack: LayerStack):
 
     layerstack = bufferize(layerstack)
 
+    assert layerstack.layers is not None
+
     for layername, polygons in layer_polygons_dict.items():
         # Check for empty polygons
         if not polygons.is_empty:
-            zs = layerstack.layers[layername].z_to_bias[0]
-            width_buffers = layerstack.layers[layername].z_to_bias[1]
+            ztb = layerstack.layers[layername].z_to_bias
+            assert ztb is not None and len(ztb) >= 2
+            zs = ztb[0]
+            width_buffers = ztb[1]
 
             for poly_ind, polygon in enumerate(
                 polygons.geoms if hasattr(polygons, "geoms") else [polygons]
@@ -107,7 +116,9 @@ def process_buffers(layer_polygons_dict: Dict, layerstack: LayerStack):
     return extended_layer_polygons_dict, LayerStack(layers=extended_layerstack_layers)
 
 
-def buffers_to_lists(layer_polygons_dict: Dict, layerstack: LayerStack):
+def buffers_to_lists(
+    layer_polygons_dict: Dict[str, Polygon | MultiPolygon], layerstack: LayerStack
+) -> Dict[str, list[Tuple[float, Polygon | MultiPolygon]]]:
     """Break up polygons on each layer into lists of polygons:z tuples according to z_to_bias.
 
     Arguments:
@@ -117,18 +128,21 @@ def buffers_to_lists(layer_polygons_dict: Dict, layerstack: LayerStack):
     Returns:
         extended_layer_polygons_dict: dict of layername: List[(z, polygon_at_z)] for all polygons at z
     """
-    extended_layer_polygons_dict = {}
+    extended_layer_polygons_dict: Dict[str, Polygon | MultiPolygon] = {}
 
     layerstack = bufferize(layerstack)
+    assert layerstack.layers is not None
 
     xfactor, yfactor = 1, 1  # buffer_to_scaling(polygon, width_buffer)
     for layername, polygons in layer_polygons_dict.items():
         all_polygons_list = []
         for polygon in polygons.geoms if hasattr(polygons, "geoms") else [polygons]:
-            zs = layerstack.layers[layername].z_to_bias[0]
-            width_buffers = layerstack.layers[layername].z_to_bias[1]
+            ztb = layerstack.layers[layername].z_to_bias
+            assert ztb is not None and len(ztb) >= 2
+            zs = ztb[0]
+            width_buffers = ztb[1]
 
-            polygons_list = [
+            polygons_list: list[Tuple[float, Polygon | MultiPolygon]] = [
                 (
                     z
                     * (
@@ -146,16 +160,22 @@ def buffers_to_lists(layer_polygons_dict: Dict, layerstack: LayerStack):
     return extended_layer_polygons_dict
 
 
-def merge_by_material_func(layer_polygons_dict: Dict, layerstack: LayerStack):
+def merge_by_material_func(
+    layer_polygons_dict: Dict, layerstack: LayerStack
+) -> dict[str, Any]:
     """Merge polygons of layer_polygons_dict whose layerstack keys share the same material in layerstack values.
 
     Returns new layer_polygons_dict with merged polygons and materials as keys.
     """
-    merged_layer_polygons_dict = {}
+    merged_layer_polygons_dict: Dict[str, Any] = {}
+    assert layerstack.layers
     for layername, polygons in layer_polygons_dict.items():
         material = layerstack.layers[layername].material
+        assert material is not None
         if material in merged_layer_polygons_dict:
-            merged_layer_polygons_dict[material] = unary_union(
+            merged_layer_polygons_dict[
+                material
+            ] = unary_union(  # TODO determine the type of this, shouldn't be "Any"
                 MultiPolygon(
                     to_polygons([merged_layer_polygons_dict[material], polygons])
                 )
@@ -166,12 +186,13 @@ def merge_by_material_func(layer_polygons_dict: Dict, layerstack: LayerStack):
     return merged_layer_polygons_dict
 
 
-def create_2D_surface_interface(
+def create_2D_surface_interface(  # type: ignore
     layer_polygons: MultiPolygon,
     thickness_min: float = 0.0,
     thickness_max: float = 0.01,
     simplify: float = 0.005,
 ):
+    # lib.voronoi_polygons is not a "type"
     """Create 2D entity at the interface of two layers/materials.
 
     Arguments:
