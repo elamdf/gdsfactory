@@ -1,5 +1,6 @@
 """Like Gmsh OCC kernel BooleanFragments, but (1) uses a meshorder to avoid generation of new surfaces, which (2) allows keeping track of physicals."""
 from collections import OrderedDict
+from typing import Union
 
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from shapely.ops import linemerge, split
@@ -8,7 +9,10 @@ from gdsfactory.simulation.gmsh.parse_gds import tile_shapes
 import numpy as np
 
 
-def break_line(line, other_line):
+def break_line(
+    line: Union[LineString, MultiLineString],
+    other_line: Union[LineString, MultiLineString],
+) -> Union[LineString, MultiLineString]:
     initial_settings = np.seterr()
     np.seterr(invalid="ignore")
     intersections = line.intersection(other_line)
@@ -27,7 +31,12 @@ def break_line(line, other_line):
     return line
 
 
-def break_geometry(shapes_dict: OrderedDict):
+def break_geometry(
+    shapes_dict: dict[str, LineString]
+) -> tuple[
+    OrderedDict[str, Union[Polygon, LineString, MultiLineString]],
+    OrderedDict[str, Union[Polygon, LineString, MultiLineString]],
+]:
     """Break up lines and polygon edges so that plane is tiled with no partially overlapping line segments.
 
     TODO: breakup in smaller functions.
@@ -42,13 +51,17 @@ def break_geometry(shapes_dict: OrderedDict):
     # Break up shapes in order so that plane is tiled with non-overlapping layers
     shapes_tiled_dict = tile_shapes(shapes_dict)
 
-    polygons_broken_dict = OrderedDict()
-    lines_broken_dict = OrderedDict()
+    polygons_broken_dict: OrderedDict[
+        str, Union[Polygon, LineString, MultiLineString]
+    ] = OrderedDict()
+    lines_broken_dict: OrderedDict[
+        str, Union[Polygon, LineString, MultiLineString]
+    ] = OrderedDict()
     for _first_index, (first_name, _init_first_shapes) in enumerate(
         shapes_dict.items()
     ):
         first_shapes = shapes_tiled_dict[first_name]
-        broken_shapes = []
+        broken_shapes: Union[Polygon, LineString] = []
         for first_shape in (
             first_shapes.geoms if hasattr(first_shapes, "geoms") else [first_shapes]
         ):
