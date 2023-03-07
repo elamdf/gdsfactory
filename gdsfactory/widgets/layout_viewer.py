@@ -72,7 +72,10 @@ class LayoutViewer:
             justify_items="left",
         )
 
-    def button_toggle(self, button):
+    def button_toggle(
+        self,
+        button: Button,
+    ) -> None:
         button.style.button_color = (
             "transparent"
             if (button.style.button_color == button.default_color)
@@ -91,7 +94,7 @@ class LayoutViewer:
             layer_iter.next()
         self.refresh()
 
-    def build_layer_toggle(self, prop_iter: lay.LayerPropertiesIterator):
+    def build_layer_toggle(self, prop_iter: lay.LayerPropertiesIterator) -> HBox:
         from gdsfactory.utils.color_utils import ensure_six_digit_hex_color
 
         props = prop_iter.current()
@@ -128,7 +131,7 @@ class LayoutViewer:
         layer_checkbox.on_click(self.button_toggle)
         return HBox([layer_checkbox, layer_label])
 
-    def build_layer_selector(self, max_height: float):
+    def build_layer_selector(self, max_height: float) -> Tab:
         """Builds a widget for toggling layer displays.
 
         Args:
@@ -153,7 +156,7 @@ class LayoutViewer:
         layer_selector_tabs.titles = ("Layers",)
         return layer_selector_tabs
 
-    def load_layout(self, filepath: str, layer_properties: Optional[str]):
+    def load_layout(self, filepath: str, layer_properties: Optional[str]) -> None:
         """Loads a GDS layout.
 
         Args:
@@ -165,12 +168,12 @@ class LayoutViewer:
         if layer_properties:
             self.layout_view.load_layer_props(layer_properties)
 
-    def refresh(self):
+    def refresh(self) -> None:
         pixel_buffer = self.layout_view.get_pixels_with_options(800, 600)
         png_data = pixel_buffer.to_png_data()
         self.image.value = png_data
 
-    def _get_modifier_buttons(self, event):
+    def _get_modifier_buttons(self, event: Event) -> int:
         shift = event["shiftKey"]
         alt = event["altKey"]
         ctrl = event["ctrlKey"]
@@ -195,7 +198,7 @@ class LayoutViewer:
 
         return buttons
 
-    def on_scroll(self, event):
+    def on_scroll(self, event: Event) -> None:
         delta = event["deltaY"]
         # x = event["offsetX"]
         # y = event["offsetY"]
@@ -209,7 +212,7 @@ class LayoutViewer:
             self.layout_view.zoom_out()
         self.refresh()
 
-    def on_mouse_down(self, event):
+    def on_mouse_down(self, event: Event) -> None:
         x = event["offsetX"]
         y = event["offsetY"]
         moved_x = event["movementX"]
