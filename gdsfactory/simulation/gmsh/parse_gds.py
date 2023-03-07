@@ -1,9 +1,11 @@
 """Preprocessing involving mostly the GDS polygons."""
 from __future__ import annotations
-from typing import Any, Dict, Generator, Union
+from typing import Generator, Optional, Union
 
+import gdsfactory as gf
 import shapely
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
+from gdsfactory.component import LayerSpec
 from gdsfactory.technology.layer_stack import LayerStack
 
 from gdsfactory.typings import ComponentOrReference
@@ -11,7 +13,7 @@ from gdsfactory.typings import ComponentOrReference
 
 def round_coordinates(
     geom: Polygon,
-    ndigits: int = 5,
+    ndigits: int = 4,
 ) -> Polygon:
     """Round coordinates to n_digits to eliminate floating point errors."""
 
@@ -30,14 +32,23 @@ def round_coordinates(
 def fuse_polygons(
     component: ComponentOrReference,
     layername: str,
-    layer: Dict[
-        str, Dict[str, Any]
-    ],  # this is what's returned from LayerLevel.to_dict()
-    round_tol: int = 5,
-    simplify_tol: float = 1e-5,
+    layer: LayerSpec,
+    round_tol: int = 4,
+    simplify_tol: float = 1e-4,
+    offset_tol: Optional[float] = None,
 ) -> Union[Polygon, MultiPolygon]:
     """Take all polygons from a layer, and returns a single (Multi)Polygon shapely object."""
-    layer_component = component.extract(layer)
+    layer_component = component.extract([layer])
+
+    # gdstk union before shapely conversion helps with ill-formed polygons
+    offset_tol = offset_tol or gf.get_active_pdk().grid_size
+    layer_component = gf.geometry.offset(
+        layer_component, distance=offset_tol, precision=1e-6, layer=layer
+    )
+    layer_component = gf.geometry.offset(
+        layer_component, distance=-offset_tol, precision=1e-6, layer=layer
+    )
+
     shapely_polygons = [
         round_coordinates(Polygon(polygon), round_tol)
         for polygon in layer_component.get_polygons()
