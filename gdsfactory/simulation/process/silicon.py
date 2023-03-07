@@ -12,7 +12,7 @@ h = 6.62607015e-34  # m2 kg s-1, Planck constant
 m0 = 9.1093837e-31  # kg, electron mass
 
 
-def Eg(T: float):
+def Eg(T: float) -> float:
     """Temperature-dependent bandgap.
 
     Arguments:
@@ -24,7 +24,7 @@ def Eg(T: float):
     return 1.1785 - 9.025 * 1e-5 * T - 3.05 * 1e-7 * T**2
 
 
-def mn(T: float):
+def mn(T: float) -> float:
     """Electron (relative) effective mass.
 
     Arguments:
@@ -36,7 +36,7 @@ def mn(T: float):
     return 1.045 + 4.5 * 1e-4 * T
 
 
-def mp(T: float):
+def mp(T: float) -> float:
     """Hole (relative) effective mass.
 
     Ref: https://www.ioffe.ru/SVA/NSM/Semicond/Si/bandstr.html#:~:text=mcd%20%3D%201.18mo,of%20the%20density%20of%20states.
@@ -53,7 +53,7 @@ def mp(T: float):
     return 0.523 + 1.4 * 1e-3 * 300 - 1.48 * 1e-6 * 300**2
 
 
-def N(T: float, m: float):
+def N(T: float, m: float) -> float:
     """Conduction band density of states.
 
     Arguments:
@@ -63,10 +63,10 @@ def N(T: float, m: float):
     Returns:
         DOS (unitless)
     """
-    return 2 * np.power((2 * np.pi * kB * T * m * m0) / (h**2), 3 / 2)
+    return 2.0 * np.power((2.0 * np.pi * kB * T * m * m0) / (h**2), 3 / 2)
 
 
-def ni(T: float):
+def ni(T: float) -> float:
     """Intrinsic carrier concentration.
 
     Arguments:

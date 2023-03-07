@@ -1,12 +1,13 @@
 """
 Reference: Selberherr, S. (1984). Process Modeling. In: Analysis and Simulation of Semiconductor Devices. Springer, Vienna. https://doi.org/10.1007/978-3-7091-8752-4_3
 """
+from typing import Dict
 import numpy as np
 from scipy import interpolate, optimize
 from pathlib import Path
 
 """um length units, energy in keV"""
-depth_in_silicon = {
+depth_in_silicon: Dict[str, np.poly1d[float]] = {
     "boron": np.poly1d([-3.308e-6, 3.338e-3, 0], variable="E"),
     "phosphorus": np.poly1d([1.290e-9, -2.743e-7, 1.259e-3, 0], variable="E"),
     "antimony": np.poly1d(
@@ -17,7 +18,7 @@ depth_in_silicon = {
     ),
 }
 
-straggle_in_silicon = {
+straggle_in_silicon: Dict[str, np.poly1d[float]] = {
     "boron": np.poly1d(
         [5.525e-13, -4.545e-10, 1.403e-7, -2.086e-5, 1.781e-3, 0], variable="E"
     ),
@@ -73,7 +74,7 @@ skew_in_silicon = {
 
 def silicon_gaussian_profile(
     dopant: str, dose: float, E: float, z: np.array = np.linspace(0, 1, 1000)
-):
+) -> np.array:
     """
     Returns gaussian implantation profile for dopant in silicon.
 
@@ -98,7 +99,7 @@ def silicon_gaussian_profile(
 
 def silicon_skewed_gaussian_profile(
     dopant: str, dose: float, E: float, z: np.array = np.linspace(0, 1, 1000)
-):
+) -> np.array:
     """
     Returns skewed two half-gaussian implantation profile for dopant in silicon. Valid for |skew| <~ 1.
 
@@ -112,22 +113,29 @@ def silicon_skewed_gaussian_profile(
         C(z): ion distribution as a function of substrate depth (ions/cm3)
         (Need to convert straggle from um to cm)
     """
-    Rp = depth_in_silicon[dopant](E)
-    sigmap = straggle_in_silicon[dopant](E)
-    gamma1 = skew_in_silicon[dopant](E)
+    Rp: float = depth_in_silicon[dopant](E)
+    sigmap: float = straggle_in_silicon[dopant](E)
+    gamma1: float = skew_in_silicon[dopant](E)
 
-    def Rp_eq(Rm, sigma1, sigma2):
-        return Rm + np.sqrt(2 / np.pi) * (sigma2 - sigma1)
+    # NOTE: we cast np.sqrt to python floats in these functions to satisfy the types (sqrt has "Any" return type), it *should* be a lossless cast
+    def Rp_eq(Rm: float, sigma1: float, sigma2: float) -> float:
+        return Rm + float(np.sqrt(2 / np.pi)) * (sigma2 - sigma1)
 
-    def sigmap_eq(Rm, sigma1, sigma2):
-        return np.sqrt(
-            (sigma1**2 - sigma1 * sigma2 + sigma2**2)
-            - 2 / np.pi * (sigma2 - sigma1) ** 2
+    def sigmap_eq(Rm: float, sigma1: float, sigma2: float) -> float:
+        return float(
+            np.sqrt(
+                (sigma1**2 - sigma1 * sigma2 + sigma2**2)
+                - 2 / np.pi * (sigma2 - sigma1) ** 2
+            )
         )
 
-    def gamma1_eq(Rm, sigma1, sigma2):
-        return (
-            np.sqrt(2 / np.pi)
+    def gamma1_eq(
+        Rm: float,
+        sigma1: float,
+        sigma2: float,
+    ) -> float:
+        return float(  # not sure why mypy doesn't get this right...
+            float(np.sqrt(2 / np.pi))
             * (sigma2 - sigma1)
             * (
                 (4 / np.pi - 1) * (sigma1**2 + sigma2**2)
@@ -136,7 +144,7 @@ def silicon_skewed_gaussian_profile(
             / sigmap_eq(Rm, sigma1, sigma2) ** 3
         )
 
-    def system(x):
+    def system(x: list[float]) -> list[float]:
         Rm, sigma1, sigma2 = x
         return [
             Rp_eq(Rm, sigma1, sigma2) - Rp,

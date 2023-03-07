@@ -2,6 +2,7 @@
 Reference: Selberherr, S. (1984). Process Modeling. In: Analysis and Simulation of Semiconductor Devices. Springer, Vienna. https://doi.org/10.1007/978-3-7091-8752-4_3
 """
 import numpy as np
+from pyparsing import Optional
 
 from gdsfactory.simulation.process.silicon import ni
 
@@ -53,9 +54,9 @@ diffusion_in_silicon = {
 def D(
     dopant: str,
     T: float,
-    n: float = None,
-    p: float = None,
-):
+    _n: Optional[float] = None,
+    _p: Optional[float] = None,
+) -> float:
     """
     Diffusion coefficient of dopants in silicon.
 
@@ -67,20 +68,20 @@ def D(
     """
     kB = 8.617333262e-5  # eV K-1
     T_kelvin = T + 273.15
-    if n is None:
-        n = ni(T_kelvin)
-    if p is None:
-        p = ni(T_kelvin)
-    Di0 = diffusion_in_silicon[dopant]["D00"] * np.exp(
+
+    n: float = _n if _n is not None else ni(T_kelvin)
+    p: float = _p if _p is not None else ni(T_kelvin)
+
+    Di0: float = diffusion_in_silicon[dopant]["D00"] * np.exp(
         -1 * diffusion_in_silicon[dopant]["Ea0"] / (kB * T_kelvin)
     )
-    Din = diffusion_in_silicon[dopant]["D0-"] * np.exp(
+    Din: float = diffusion_in_silicon[dopant]["D0-"] * np.exp(
         -1 * diffusion_in_silicon[dopant]["Ea-"] / (kB * T_kelvin)
     )
-    Dinn = diffusion_in_silicon[dopant]["D0="] * np.exp(
+    Dinn: float = diffusion_in_silicon[dopant]["D0="] * np.exp(
         -1 * diffusion_in_silicon[dopant]["Ea="] / (kB * T_kelvin)
     )
-    Dip = diffusion_in_silicon[dopant]["D0+"] * np.exp(
+    Dip: float = diffusion_in_silicon[dopant]["D0+"] * np.exp(
         -1 * diffusion_in_silicon[dopant]["Ea+"] / (kB * T_kelvin)
     )
     return (
@@ -99,7 +100,7 @@ def silicon_diffused_gaussian_profile(
     T: float,
     z: np.array = np.linspace(0, 1, 1000),
     # x: np.array = np.linspace(-5,5,1000),
-):
+) -> np.array:
     """
     Returns diffused gaussian implantation profile for dopant in silicon.
 
@@ -119,8 +120,8 @@ def silicon_diffused_gaussian_profile(
         straggle_in_silicon,
     )
 
-    z0 = depth_in_silicon[dopant](E)
-    dz = straggle_in_silicon[dopant](E)
+    z0: float = depth_in_silicon[dopant](E)
+    dz: float = straggle_in_silicon[dopant](E)
     Dconst = D(dopant=dopant, T=T) * 1e8  # convert from cm2/s to to um2/s
 
     # 2D functions (TODO)
