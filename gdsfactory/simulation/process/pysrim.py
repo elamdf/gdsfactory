@@ -1,13 +1,18 @@
 from itertools import count
 from pathlib import Path
 import shutil
-from srim import TRIM
+from typing import Any, Dict, Generator, Optional, Union
+
+from srim import TRIM, Ion, Layer, Target
 import os
 from itertools import repeat
 import pandas as pd
 
 
-def fragment(step, total):
+def fragment(
+    step: int,
+    total: int,
+) -> Generator[int, None, Union[int, None]]:
     remaining = total
     while remaining > 0:
         if step > remaining:
@@ -15,24 +20,26 @@ def fragment(step, total):
         else:
             remaining -= step
             yield step
+    return 0  # TODO is this correct? there should be *some* default return value... maybe we raise something here?
 
 
-def find_folder(directory):
+def find_folder(directory: Path) -> str:
     for i in count():
         path = Path(directory) / str(i)
         if not path.is_dir():
             return str(path.absolute())
+    raise FileNotFoundError(f"find_folder failed with directory {directory}")
 
 
 def run_fragmented_calculation(
     srim_executable_directory: Path,
-    ion,
-    target,
-    number_ions,
+    ion: Ion,
+    target: Target,
+    number_ions: int,
     save_path: Path,
-    trim_settings=None,
+    trim_settings: Optional[Dict[str, Any]] = None,
     step: int = 1000,
-):
+) -> None:
     """Runs a TRIM calculations in series, with each batch no more than 1000 ions to avoid crashes.
 
     Arguments:
@@ -61,14 +68,14 @@ def run_fragmented_calculation(
 
 def run_parallel_fragmented_calculation(
     srim_executable_directory: Path,
-    ion,
-    target,
-    number_ions,
+    ion: Ion,
+    target: Target,
+    number_ions: int,
     save_path: Path,
-    trim_settings=None,
+    trim_settings: Optional[Dict[str, Any]] = None,
     step: int = 1000,
     cores: int = 4,
-):
+) -> None:
     """Runs "cores" TRIM series calculations in parallel, with each batch no more than 1000 ions to avoid crashes.
 
     Arguments:
@@ -105,7 +112,7 @@ def run_parallel_fragmented_calculation(
         shutil.rmtree(srim_executable_directory.parent / str(i))
 
 
-def read_ranges(save_path):
+def read_ranges(save_path: Path) -> pd.DataFrame:
     """Read ranges from a data directory (or subdirectories).
 
     TODO: contribute back to PySRIM.
@@ -116,7 +123,7 @@ def read_ranges(save_path):
         x-column represent lateral dimension, in tilt angle direction
         y-column represents lateral dimension, perpendicular to tilt angle direction
     """
-    dataframes = []
+    dataframes: list[pd.DataFrame] = []
     for root, _dirs, files in os.walk(save_path):
         for filename in files:
             if filename == "RANGE_3D.txt":
@@ -132,7 +139,6 @@ def read_ranges(save_path):
 
 if __name__ == "__main__":
     from pathlib import Path
-    from srim import Ion, Layer, Target
     import matplotlib.pyplot as plt
 
     # Define implant
