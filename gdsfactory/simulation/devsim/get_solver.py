@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 from devsim import (
     delete_device,
     delete_mesh,
@@ -29,10 +30,11 @@ from gdsfactory.simulation.devsim.doping import (
     get_doping_info_generic,
 )
 from gdsfactory.simulation.devsim.get_simulation import create_2Duz_simulation
-from gdsfactory.technology import LayerStack
+from gdsfactory.technology import LayerStack, layer_map
+from gdsfactory.typings import Resolutions
 
 
-def set_universal_parameters(device, region):
+def set_universal_parameters(device: str, region: str) -> None:
     universal = {
         "q": 1.6e-19,  # , 'coul'),
         "k": 1.3806503e-23,  # , 'J/K'),
@@ -50,14 +52,14 @@ class DDComponent:
         full_layerstack: LayerStack,
         physical_layerstack: LayerStack,
         doping_info: Dict[str, DopingLayerLevel],
-        contact_info=Dict,
-        resolutions: Optional[Dict[str, Dict]] = None,
+        contact_info: Dict[str, Dict[str, Any]],
+        resolutions: Optional[Resolutions] = None,
         mesh_scaling_factor: float = 1e-4,
         background_tag: Optional[str] = None,
-        temp_file_name="temp.msh2",
-        devsim_mesh_name="temp",
-        devsim_device_name="temp",
-        devsim_simulation_filename="devsim.dat",
+        temp_file_name: str = "temp.msh2",
+        devsim_mesh_name: str = "temp",
+        devsim_device_name: str = "temp",
+        devsim_simulation_filename: str = "devsim.dat",
         atol: float = 1e12,
         rtol: float = 1e-12,
         max_iter: int = 200,
@@ -146,16 +148,21 @@ class DDComponent:
 
         extra = Extra.allow
 
-    def set_extended_precision(self):
+    def set_extended_precision(self) -> None:
         set_parameter(name="extended_solver", value=True)
         set_parameter(name="extended_model", value=True)
         set_parameter(name="extended_equation", value=True)
 
-    def set_parameters(self, region, device) -> None:
+    def set_parameters(self, region: str, device: str) -> None:
         """Set parameters for 300 K."""
         simple_physics.SetSiliconParameters(device, region, 300)
 
-    def initial_solution(self, device, region, circuit_contacts=None) -> None:
+    def initial_solution(
+        self,
+        device: str,
+        region: str,
+        circuit_contacts: Optional[Dict[Any, Any]] = None,
+    ) -> None:  # FIXME circuit contacts shouldn't be Any dict , have no reference
         # Create Potential, Potential@n0, Potential@n1
         model_create.CreateSolution(device, region, "Potential")
 
@@ -175,7 +182,12 @@ class DDComponent:
                 )
                 simple_physics.CreateSiliconPotentialOnlyContact(device, region, i)
 
-    def drift_diffusion_initial_solution(self, device, region, circuit_contacts=None):
+    def drift_diffusion_initial_solution(
+        self,
+        device: str,
+        region: str,
+        circuit_contacts: Optional[Dict[Any, Any]] = None,
+    ) -> None:  # FIXME circuit contacts shouldn't be Any dict , have no reference
         # drift diffusion solution variables
         model_create.CreateSolution(device, region, "Electrons")
         model_create.CreateSolution(device, region, "Holes")
@@ -201,7 +213,9 @@ class DDComponent:
             else:
                 simple_physics.CreateSiliconDriftDiffusionAtContact(device, region, i)
 
-    def ddsolver(self, global_meshsize_array=None) -> None:
+    def ddsolver(
+        self, global_meshsize_array: Optional[npt.NDArray[np.float64]] = None
+    ) -> None:
         """Initialize mesh and solver."""
         self.device, self.regions, self.interfaces = create_2Duz_simulation(
             component=self.component,
@@ -241,7 +255,11 @@ class DDComponent:
         )
 
     def ramp_voltage(
-        self, Vfinal: float, Vstep: float, Vinit: float = 0.0, contact_name="cathode"
+        self,
+        Vfinal: float,
+        Vstep: float,
+        Vinit: float = 0.0,
+        contact_name: str = "cathode",
     ) -> None:
         """Ramps the solution from Vi to Vf."""
         V = Vinit
@@ -259,7 +277,7 @@ class DDComponent:
             )
             V += Vstep
 
-    def get_node_index(self, region_name):
+    def get_node_index(self, region_name: str) -> list[Tuple[int, int]]:
         """Maps head and tail nodes of from their edge index.
 
         From https://github.com/devsim/devsim_misc/blob/9a3c7056e0e3e7fc49e17031a706573350292d4d/refinement/refinement2.py#L45
@@ -291,12 +309,13 @@ class DDComponent:
             )
         )
 
-    def get_node_field(self, region_name, field_name="Electrons"):
+    # TODO figure out devsim return values (can't find these function definitions)
+    def get_node_field(self, region_name: str, field_name: str = "Electrons"):
         return get_node_model_values(
             device=self.device, region=region_name, name=field_name
         )
 
-    def get_mean_edge_from_node_field(self, region_name, node_field="x"):
+    def get_mean_edge_from_node_field(self, region_name: str, node_field: str = "x"):
         edge_average_model(
             device=self.device,
             region=region_name,
@@ -308,7 +327,7 @@ class DDComponent:
             device=self.device, region=region_name, name=f"{node_field}@mean"
         )
 
-    def get_edge_field(self, region_name, field_name="EdgeLength"):
+    def get_edge_field(self, region_name: str, field_name: str = "EdgeLength"):
         return get_edge_model_values(
             device=self.device, region=region_name, name=field_name
         )
@@ -316,7 +335,7 @@ class DDComponent:
     def get_regions(self):
         return get_region_list(device=self.device)
 
-    def save_device(self, filepath) -> None:
+    def save_device(self, filepath: str) -> None:
         """Save Device to a tecplot filepath that you can open with Paraview."""
         write_devices(file=filepath, type="tecplot")
 
@@ -327,10 +346,10 @@ class DDComponent:
 
     def get_refined_mesh(
         self,
+        refine_dict: Dict[str, Dict[str, Any]],
         factor: float = 2.0,
-        refine_dict: Dict[str, Dict] = None,
         refine_regions: Tuple[str, ...] = ("si",),
-    ):
+    ) -> npt.NDArray[np.float64]:
         """Refines the mesh based on simulation result.
 
         Currently only remeshes in silicon regions.
@@ -390,20 +409,26 @@ class DDComponent:
                         )
 
         um_to_cm = 1e-4
-        xs = np.hstack([np.array(x) for x in xs.values()], dtype=np.float64) / um_to_cm
-        ys = np.hstack([np.array(y) for y in ys.values()], dtype=np.float64) / um_to_cm
-        lcs = (
-            np.hstack([np.array(lc) for lc in lcs.values()], dtype=np.float64)
+        xs_hstack = (
+            np.hstack([np.array(x, dtype=np.float64) for x in xs.values()]) / um_to_cm
+        )
+        ys_hstack = (
+            np.hstack([np.array(y, dtype=np.float64) for y in ys.values()]) / um_to_cm
+        )
+        lcs_hstack = (
+            np.hstack([np.array(lc, dtype=np.float64) for lc in lcs.values()])
             / um_to_cm
         )
-        refine = np.hstack([np.array(x) for x in refine.values()], dtype=bool)
+        refine_hstack = np.hstack(
+            [np.array(x, dtype=np.float64) for x in refine.values()]
+        )
 
-        lcs_after = np.where(refine, lcs / factor, lcs)
+        lcs_after = np.where(refine_hstack, lcs_hstack / factor, lcs_hstack)
 
-        N = len(xs)
+        N = len(xs_hstack)
         meshing_field = np.zeros([N, 4])
-        meshing_field[:, 0] = xs
-        meshing_field[:, 1] = ys
+        meshing_field[:, 0] = xs_hstack
+        meshing_field[:, 1] = ys_hstack
         meshing_field[:, 2] = np.zeros(N)
         meshing_field[:, 3] = lcs_after
         return meshing_field
@@ -417,15 +442,17 @@ if __name__ == "__main__":
     waveguide.add_ref(
         gf.geometry.trim(
             component=gf.components.straight_pn(length=10, taper=None),
-            domain=[[3, -4], [3, 4], [5, 4], [5, -4]],
+            domain=[(3, -4), (3, 4), (5, 4), (5, -4)],
         )
     )
 
     # We will restrict the physical mesh to a subset of layers:
-    layermap = gf.tech.LayerMap()
+    layermap = layer_map.LayerMap()
+    ls = get_layer_stack()
+    assert ls.layers is not None
     physical_layerstack = LayerStack(
         layers={
-            k: get_layer_stack().layers[k]
+            k: ls.layers[k]
             for k in (
                 "slab90",
                 "core",
@@ -479,7 +506,7 @@ if __name__ == "__main__":
 
     c = DDComponent(
         component=waveguide,
-        xsection_bounds=[(4, -4), (4, 4)],
+        xsection_bounds=((4.0, -4.0), (4.0, 4.0)),
         full_layerstack=get_layer_stack(),
         physical_layerstack=physical_layerstack,
         doping_info=get_doping_info_generic(),
@@ -504,13 +531,13 @@ if __name__ == "__main__":
                 "threshold": 1,
             },
         },
-        refine_regions=["si"],
+        refine_regions=tuple("si"),
     )
 
     c.delete_device()
     c = DDComponent(
         component=waveguide,
-        xsection_bounds=[(4, -4), (4, 4)],
+        xsection_bounds=((4.0, -4.0), (4.0, 4.0)),
         full_layerstack=get_layer_stack(),
         physical_layerstack=physical_layerstack,
         doping_info=get_doping_info_generic(),
