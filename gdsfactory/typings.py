@@ -193,6 +193,8 @@ CrossSectionSpec = Union[
 
 MultiCrossSectionAngleSpec = List[Tuple[CrossSectionSpec, Tuple[int, ...]]]
 
+Resolutions = Dict[str, Dict[str, float]]
+
 
 class Route(BaseModel):
     references: List[ComponentReference]
