@@ -14,24 +14,48 @@ material_name_to_lumerical_default = {
     "si": "Si (Silicon) - Palik",
     "sio2": "SiO2 (Glass) - Palik",
     "sin": "Si3N4 (Silicon Nitride) - Phillip",
-    "tungsten": "W (tungsten) - Palik",
-    "cu": "Cu (copper) - CRC",
-    "air": "Air",
+    "tungsten": "W (Tungsten) - Palik",
+    "cu": "Cu (Copper) - CRC",
 }
 
 
-class SimulationSettingsLumericalFdtd(BaseModel):
+class SimulationSettingsLumerical(BaseModel):
+    """Lumerical FDTD simulation_settings.
+
+        background_material: for the background.
+        zmargin: for the simulation engine region (um).
+        ymargin: for the simulation engine region (um).
+        xmargin: for the simulation engine region (um).
+    Parameters:
+    """
+
+    material_name_to_lumerical: dict[str, str] = material_name_to_lumerical_default
+    background_material: str = "sio2"
+    xmargin: float = 0
+    ymargin: float = 0
+    zmargin: float = 0
+
+    class Config:
+        """pydantic basemodel config."""
+
+        arbitrary_types_allowed = True
+
+
+class SimulationSettingsLumericalCharge(SimulationSettingsLumerical):
+    # air only exists in CHARGE
+    material_name_to_lumerical: dict[str, str] = dict(
+        {"air": "Air"}, **material_name_to_lumerical_default
+    )
+
+
+class SimulationSettingsLumericalFdtd(SimulationSettingsLumerical):
     """Lumerical FDTD simulation_settings.
 
     Parameters:
-        background_material: for the background.
         port_margin: on both sides of the port width (um).
         port_height: port height (um).
         port_extension: port extension (um).
         mesh_accuracy: 2 (1: coarse, 2: fine, 3: superfine).
-        zmargin: for the FDTD region (um).
-        ymargin: for the FDTD region (um).
-        xmargin: for the FDTD region (um).
         wavelength_start: 1.2 (um).
         wavelength_stop: 1.6 (um).
         wavelength_points: 500.
@@ -42,7 +66,6 @@ class SimulationSettingsLumericalFdtd(BaseModel):
         field_profile_samples: number of wavelengths to compute field profile.
     """
 
-    background_material: str = "sio2"
     port_margin: float = 1.5
     port_extension: float = 5.0
     mesh_accuracy: int = 2
@@ -54,15 +77,10 @@ class SimulationSettingsLumericalFdtd(BaseModel):
     frequency_dependent_profile: bool = True
     field_profile_samples: int = 15
     distance_monitors_to_pml: float = 0.5
-    material_name_to_lumerical: dict[str, str] = material_name_to_lumerical_default
-
-    class Config:
-        """pydantic basemodel config."""
-
-        arbitrary_types_allowed = True
 
 
 SIMULATION_SETTINGS_LUMERICAL_FDTD = SimulationSettingsLumericalFdtd()
+SIMULATION_SETTINGS_LUMERICAL_CHARGE = SimulationSettingsLumericalCharge()
 
 wavelengths = [
     0.600,
