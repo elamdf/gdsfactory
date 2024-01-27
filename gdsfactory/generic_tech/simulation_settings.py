@@ -29,10 +29,17 @@ class SimulationSettingsLumerical(BaseModel):
     Parameters:
     """
 
+    compute_time_seconds: float = 0
+    compute_time_minutes: float = 0
     material_name_to_lumerical: dict[str, str] = material_name_to_lumerical_default
     background_material: str = "sio2"
     xmargin: float = 0
     ymargin: float = 0
+    zmargin: float = 0
+    xmargin_left: float = 0
+    xmargin_right: float = 0
+    ymargin_top: float = 0
+    ymargin_bot: float = 0
     zmargin: float = 0
 
     class Config:
